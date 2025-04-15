@@ -20,12 +20,12 @@ flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.f
 echo "Intalling proprietary video codecs"
 sudo dnf4 group upgrade multimedia
 sudo dnf swap 'ffmpeg-free' 'ffmpeg' --allowerasing
-sudo dnf upgrade @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin
-sudo dnf4 group install -y sound-and-video
+sudo dnf upgrade @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin 
+sudo dnf group install -y sound-and-video 
 sudo dnf install ffmpeg-libs libva libva-utils
-sudo dnf swap libva-intel-media-driver intel-media-driver --allowerasing
 
 echo "Installing Intel media driver"
+sudo dnf swap libva-intel-media-driver intel-media-driver --allowerasing
 sudo dnf install libva-intel-driver
 
 echo "Installing openh264 and gstreamer plugins for Mozilla Firefox..."
