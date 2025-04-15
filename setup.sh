@@ -1,8 +1,6 @@
 #!/bin/bash
 #Comments and echoes ARE chatGPT generated
 
-set -e
-
 echo "-------------------------------------"
 echo "Fedora post-installation setup script"
 echo "-------------------------------------"
