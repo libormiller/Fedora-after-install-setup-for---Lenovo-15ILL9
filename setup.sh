@@ -99,5 +99,7 @@ sudo dnf install -y code
 echo ""
 echo "Visual Studio Code installed successfully."
 
+progress "Installing VirtManager (Virtual Machine Manager)..."
+sudo dnf install -y virt-manager
 echo "-------------------------------------"
 echo "All applications have been installed!"
