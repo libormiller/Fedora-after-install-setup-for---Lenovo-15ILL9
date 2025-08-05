@@ -1,72 +1,103 @@
 #!/bin/bash
-#Comments and echoes ARE chatGPT generated
 
-echo "-------------------------------------"
-echo "Fedora post-installation setup script"
-echo "-------------------------------------"
+# Simple progress tracking
+TOTAL_STEPS=15
+CURRENT_STEP=0
+
+progress() {
+    CURRENT_STEP=$((CURRENT_STEP + 1))
+    echo "[$CURRENT_STEP/$TOTAL_STEPS] $1"
+}
+
+echo "======================================"
+echo "Fedora Post-Installation Setup Script"
+echo "======================================"
 echo ""
 
 ### 1. Basic Setup ###
-echo "[1/3] Starting basic setup..."
-echo "Performing FW update"
+progress "Installing RPM Fusion repositories..."
+sudo dnf install -y https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm
+
+progress "Updating system packages..."
+sudo dnf -y update
+
+progress "Performing firmware update..."
 sudo fwupdmgr refresh --force
 sudo fwupdmgr get-devices
 sudo fwupdmgr get-updates
 sudo fwupdmgr update
 
-echo "Adding the Flathub remote, if it doesn't exist..."
+progress "Adding Flathub repository..."
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 
-echo "Intalling proprietary video codecs"
-sudo dnf4 group upgrade multimedia
-sudo dnf swap 'ffmpeg-free' 'ffmpeg' --allowerasing
-sudo dnf upgrade @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin 
+progress "Installing proprietary video codecs..."
+sudo dnf4 group upgrade multimedia -y
+sudo dnf swap 'ffmpeg-free' 'ffmpeg' --allowerasing -y
+sudo dnf upgrade @multimedia --setopt="install_weak_deps=False" --exclude=PackageKit-gstreamer-plugin -y
 sudo dnf group install -y sound-and-video 
-sudo dnf install ffmpeg-libs libva libva-utils
+sudo dnf install ffmpeg-libs libva libva-utils -y
 
-echo "Installing Intel media driver"
-sudo dnf swap libva-intel-media-driver intel-media-driver --allowerasing
-sudo dnf install libva-intel-driver
+progress "Installing Intel media driver..."
+sudo dnf swap libva-intel-media-driver intel-media-driver --allowerasing -y
+sudo dnf install libva-intel-driver -y
 
-echo "Installing openh264 and gstreamer plugins for Mozilla Firefox..."
+progress "Installing Firefox multimedia support..."
 sudo dnf install -y openh264 gstreamer1-plugin-openh264 mozilla-openh264
 sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1
 
 echo "Basic setup complete!"
 echo ""
 
-### 2. Audio Fix ###
-echo "[2/3] Applying audio configuration fix..."
-if [ -d "alsa-ucm-conf" ]; then
-    echo "The 'alsa-ucm-conf' folder already exists. Skipping clone."
-else
-    git clone https://github.com/alsa-project/alsa-ucm-conf.git
-fi
-pushd alsa-ucm-conf > /dev/null
-sudo cp -r ucm2 /usr/share/alsa/
-popd > /dev/null
+### Flatpak-based installations ###
+progress "Installing Flatpak applications..."
 
-echo "Audio fix complete!"
+# Make sure Flathub is added
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+
+# App list
+progress "Installing Thunderbird..."
+flatpak install -y flathub org.mozilla.Thunderbird
+
+progress "Installing Obsidian..."
+flatpak install -y flathub md.obsidian.Obsidian
+
+progress "Installing Discord..."
+flatpak install -y flathub com.discordapp.Discord
+
+progress "Installing OnlyOffice..."
+flatpak install -y flathub org.onlyoffice.desktopeditors
+
+progress "Installing Spotify..."
+flatpak install -y flathub com.spotify.Client
+
+progress "Installing Steam..."
+flatpak install -y flathub com.valvesoftware.Steam
+
+progress "Installing FreeTube..."
+flatpak install -y flathub io.freetubeapp.FreeTube
+
+progress "Installing qBittorrent..."
+flatpak install -y flathub org.qbittorrent.qBittorrent
+
+progress "Installing VLC..."
+flatpak install -y flathub org.videolan.VLC
+
+echo "Flatpak applications installed successfully."
 echo ""
 
-### 3. Bluetooth Fix ###
-echo "[3/3] Applying Bluetooth firmware fix..."
-# Create a backup directory for the current Bluetooth firmware files.
-mkdir -p bt-fw-backup
-sudo mv /lib/firmware/intel/ibt-0190-* bt-fw-backup/ || echo "No existing firmware files to move."
-if [ -d "linux-firmware" ]; then
-    echo "The 'linux-firmware' folder already exists. Skipping clone."
-else
-    git clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
-fi
-sudo cp linux-firmware/intel/ibt-0190-* /lib/firmware/intel/
-sudo ln -sf /lib/firmware/intel/ibt-0190-0291.sfi /lib/firmware/intel/ibt-0190-0291-pci.sfi
-sudo ln -sf /lib/firmware/intel/ibt-0190-0291.ddc /lib/firmware/intel/ibt-0190-0291-pci.ddc
+### VS Code via Microsoft RPM repo ###
+progress "Installing Visual Studio Code..."
 
-echo "Rebuilding initramfs with dracut..."
-sudo dracut --force
+# Import Microsoft GPG key and add repo
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null
 
-echo "Bluetooth firmware fix complete!"
+# Install VS Code
+sudo dnf check-update || true
+sudo dnf install -y code
+
 echo ""
+echo "Visual Studio Code installed successfully."
+
 echo "-------------------------------------"
-echo "Fedora post-installation setup completed successfully!"
+echo "All applications have been installed!"
