@@ -3,7 +3,6 @@
 # Skript se zastaví při neočekávaných chybách mimo definované kroky
 set -e
 
-# Aktualizovaný počet kroků (přidán Distrobox, NPU ovladače a OpenVINO)
 TOTAL_STEPS=23
 CURRENT_STEP=0
 
@@ -35,7 +34,7 @@ run_step() {
         else
             echo "ℹ️ Pro tento krok není potřeba nebo definován žádný rollback."
         fi
-        echo "⛔ Skript byl z bezpečnostních doomed důvodů přerušen."
+        echo "⛔ Skript byl z bezpečnostních důvodů přerušen."
         exit 1
     fi
     echo "🔹 Krok dokončen úspěšně."
@@ -64,8 +63,9 @@ run_step "Adding Flathub repository..." \
          "flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo" \
          "flatpak remote-delete flathub"
 
+# OPRAVENÝ KROK: Instalace jmenovitých kodeků místo problematických skupin
 run_step "Installing proprietary video codecs..." \
-         "sudo dnf4 group upgrade multimedia -y && sudo dnf swap 'ffmpeg-free' 'ffmpeg' --allowerasing -y && sudo dnf upgrade @multimedia --setopt=\"install_weak_deps=False\" --exclude=PackageKit-gstreamer-plugin -y && sudo dnf group install -y sound-and-video && sudo dnf install ffmpeg-libs libva libva-utils -y" \
+         "sudo dnf swap 'ffmpeg-free' 'ffmpeg' --allowerasing -y && sudo dnf install -y gstreamer1-plugins-bad-freeworld gstreamer1-plugins-ugly gstreamer1-plugin-libav gstreamer1-vaapi ffmpeg-libs libva libva-utils" \
          ""
 
 run_step "Installing Intel media driver..." \
@@ -73,7 +73,7 @@ run_step "Installing Intel media driver..." \
          ""
 
 run_step "Installing Firefox multimedia support..." \
-         "sudo dnf install -y openh264 gstreamer1-plugin-openh264 mozilla-openh264 && sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1" \
+         "sudo dnf install -y openh264 gstreamer1-plugin-openh264 mozilla-openh264 && sudo dnf config-manager setopt fedora-cisco-openh264.enabled=1 2>/dev/null || sudo dnf config-manager --enable fedora-cisco-openh264" \
          ""
 
 
@@ -110,22 +110,4 @@ run_step "Installing Spotify..." "flatpak install -y flathub com.spotify.Client"
 run_step "Installing Steam..." "flatpak install -y flathub com.valvesoftware.Steam" "flatpak uninstall -y com.valvesoftware.Steam 2>/dev/null || true"
 run_step "Installing FreeTube..." "flatpak install -y flathub io.freetubeapp.FreeTube" "flatpak uninstall -y io.freetubeapp.FreeTube 2>/dev/null || true"
 run_step "Installing qBittorrent..." "flatpak install -y flathub org.qbittorrent.qBittorrent" "flatpak uninstall -y org.qbittorrent.qBittorrent 2>/dev/null || true"
-run_step "Installing VLC..." "flatpak install -y flathub org.videolan.VLC" "flatpak uninstall -y org.videolan.VLC 2>/dev/null || true"
-
-
-### 5. Vývojové nástroje a Virtualizace ###
-run_step "Installing Visual Studio Code..." \
-         "sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc && echo -e '[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc' | sudo tee /etc/yum.repos.d/vscode.repo > /dev/null && sudo dnf check-update || true && sudo dnf install -y code" \
-         "sudo rm -f /etc/yum.repos.d/vscode.repo && sudo dnf remove -y code"
-
-run_step "Installing VirtManager (Virtual Machine Manager)..." \
-         "sudo dnf install -y virt-manager" \
-         "sudo dnf remove -y virt-manager"
-
-echo "--------------------------------------------------"
-echo "🎉 Všechny kroky a aplikace byly úspěšně nastaveny!"
-echo "--------------------------------------------------"
-echo "⚠️ DŮLEŽITÉ: Pro správné fungování NPU, OpenVINO a Distroboxu"
-echo "   se prosím odhlaste a znovu přihlaste do systému,"
-echo "   aby se projevilo vaše členství ve skupině 'render'."
-echo "--------------------------------------------------"
+run_step "Installing VLC..." "flatpak install -y flathub org.videolan.VLC" "flatpak uninstall -y org.videolan.VLC 2>/dev
